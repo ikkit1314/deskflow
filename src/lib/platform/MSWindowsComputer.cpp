@@ -11,6 +11,7 @@
 #include "arch/Arch.h"
 #include "arch/win32/ArchMiscWindows.h"
 #include "arch/win32/XArchWindows.h"
+#include "base/DirectionTypes.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/TMethodJob.h"
@@ -197,6 +198,10 @@ void MSWindowsComputer::enable()
 
     // watch jump zones
     m_hook.setMode(kHOOK_WATCH_JUMP_ZONE);
+
+    // back up the hook in case it can't see the cursor
+    m_jumpZoneTimer = m_events->newTimer(0.05, nullptr);
+    m_events->addHandler(EventTypes::Timer, m_jumpZoneTimer, [this](const auto &) { pollJumpZone(); });
   }
 }
 
@@ -229,6 +234,12 @@ void MSWindowsComputer::disable()
     m_events->removeHandler(EventTypes::Timer, m_fixTimer);
     m_events->deleteTimer(m_fixTimer);
     m_fixTimer = nullptr;
+  }
+
+  if (m_jumpZoneTimer != nullptr) {
+    m_events->removeHandler(EventTypes::Timer, m_jumpZoneTimer);
+    m_events->deleteTimer(m_jumpZoneTimer);
+    m_jumpZoneTimer = nullptr;
   }
 
   m_isOnComputer = m_isPrimary;
@@ -1454,6 +1465,36 @@ void MSWindowsComputer::handleFixes()
   if (m_keyState->didGroupsChange()) {
     updateKeys();
   }
+}
+
+void MSWindowsComputer::pollJumpZone()
+{
+  // a full-screen remote desktop client, or any window running at a higher
+  // integrity level than us, can stop the low-level mouse hook from seeing
+  // the cursor move. the cursor then sits in a jump zone without the server
+  // ever hearing about it, so check the real position ourselves.
+  if (!m_isPrimary || !m_isOnComputer) {
+    return;
+  }
+
+  POINT pos;
+  if (!GetCursorPos(&pos) || (pos.x == m_xCursor && pos.y == m_yCursor)) {
+    return;
+  }
+
+  const auto sides = m_hook.getSides();
+  const auto zone = getJumpZoneSize();
+  using enum DirectionMask;
+  const bool inside = ((sides & static_cast<uint32_t>(LeftMask)) != 0 && pos.x < m_x + zone) ||
+                      ((sides & static_cast<uint32_t>(RightMask)) != 0 && pos.x >= m_x + m_w - zone) ||
+                      ((sides & static_cast<uint32_t>(TopMask)) != 0 && pos.y < m_y + zone) ||
+                      ((sides & static_cast<uint32_t>(BottomMask)) != 0 && pos.y >= m_y + m_h - zone);
+  if (!inside) {
+    return;
+  }
+
+  LOG_DEBUG("cursor in jump zone at %d,%d but the hook did not report it, using polled position", pos.x, pos.y);
+  onMouseMove(pos.x, pos.y);
 }
 
 void MSWindowsComputer::fixClipboardViewer()
