@@ -1098,11 +1098,11 @@ L&apos;abilitazione di questa impostazione disabiliterà l&apos;interfaccia graf
     </message>
     <message>
         <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
-        <translation type="unfinished"></translation>
+        <translation>Consente agli strumenti di desktop remoto (ad es. Chrome Remote Desktop) di controllare questo computer mentre i client sono connessi. L&apos;input remoto non passa a un client, e un clic o un tasto remoto riporta qui il cursore.</translation>
     </message>
     <message>
         <source>Allow remote desktop control (Windows only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Consenti il controllo tramite desktop remoto (solo Windows)</translation>
     </message>
 </context>
 <context>
