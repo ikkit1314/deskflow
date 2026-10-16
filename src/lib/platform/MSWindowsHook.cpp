@@ -43,6 +43,8 @@ static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
 static bool g_ignoreInjectedInput = false;
+static HWINEVENTHOOK g_foregroundHook = nullptr;
+static UINT_PTR g_moveToFrontTimer = 0;
 
 MSWindowsHook::~MSWindowsHook()
 {
@@ -669,6 +671,23 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
   return CallNextHookEx(g_mouseLL, code, wParam, lParam);
 }
 
+static void CALLBACK moveToFrontTimer(HWND, UINT, UINT_PTR id, DWORD)
+{
+  KillTimer(nullptr, id);
+  g_moveToFrontTimer = 0;
+  MSWindowsHook::moveToFront();
+}
+
+static void CALLBACK foregroundChanged(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD)
+{
+  // the new foreground program (e.g. a full-screen remote desktop client)
+  // may install its hooks only once it has focus, so wait a moment first
+  if (g_moveToFrontTimer != 0) {
+    KillTimer(nullptr, g_moveToFrontTimer);
+  }
+  g_moveToFrontTimer = SetTimer(nullptr, 0, 500, &moveToFrontTimer);
+}
+
 EHookResult MSWindowsHook::install()
 {
   assert(g_getMessage == nullptr || g_screenSaver);
@@ -714,6 +733,14 @@ EHookResult MSWindowsHook::install()
   // clang-format on
   if (g_keyboardLL != nullptr || g_mouseLL != nullptr) {
     g_hookThread = GetCurrentThreadId();
+
+    // a program that takes the foreground can install its own low-level
+    // hooks, so put ours back in front whenever the foreground changes
+    if (g_foregroundHook == nullptr) {
+      g_foregroundHook = SetWinEventHook(
+          EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr, &foregroundChanged, 0, 0, WINEVENT_OUTOFCONTEXT
+      );
+    }
     return kHOOK_OKAY_LL;
   }
 
@@ -725,6 +752,16 @@ int MSWindowsHook::uninstall()
   // discard old dead keys
   g_deadVirtKey = 0;
   g_deadLParam = 0;
+
+  // stop following the foreground window
+  if (g_foregroundHook != nullptr) {
+    UnhookWinEvent(g_foregroundHook);
+    g_foregroundHook = nullptr;
+  }
+  if (g_moveToFrontTimer != 0) {
+    KillTimer(nullptr, g_moveToFrontTimer);
+    g_moveToFrontTimer = 0;
+  }
 
   // uninstall hooks
   if (g_keyboardLL != nullptr) {

@@ -193,9 +193,6 @@ private: // HACK
   // fix timer callback
   void handleFixes();
 
-  // jump zone poll timer callback
-  void pollJumpZone();
-
   // fix the clipboard viewer chain
   void fixClipboardViewer();
 
@@ -295,9 +292,6 @@ private:
 
   // timer for periodically checking stuff that requires polling
   EventQueueTimer *m_fixTimer = nullptr;
-
-  // timer for catching the cursor in a jump zone when the hook misses it
-  EventQueueTimer *m_jumpZoneTimer = nullptr;
 
   // the keyboard layout to use when off primary computer
   HKL m_keyLayout = nullptr;
