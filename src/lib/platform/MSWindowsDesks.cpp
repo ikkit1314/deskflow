@@ -720,6 +720,11 @@ void MSWindowsDesks::deskThread(const void *vdesk)
     case DESKFLOW_MSG_LEAVE:
       m_isOnComputer = false;
       m_keyLayout = (HKL)msg.wParam;
+      if (m_isPrimary && m_useHooks && desk->m_lowLevel) {
+        // make sure keys typed for the client reach us before any other
+        // program's hook, e.g. a focused full-screen remote desktop client.
+        MSWindowsHook::moveToFront();
+      }
       deskLeave(desk, m_keyLayout);
       break;
 

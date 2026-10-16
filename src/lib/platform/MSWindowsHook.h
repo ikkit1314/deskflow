@@ -78,6 +78,14 @@ public:
 
   static int uninstall();
 
+  //! Move the low-level hooks to the front of the hook chain
+  /*!
+  Windows calls the most recently installed low-level hook first. A program
+  that installs its own hook later, like a full-screen remote desktop client,
+  can swallow input before we see it. Installing ours again puts it first.
+  */
+  static void moveToFront();
+
   static int installScreenSaver();
 
   static int uninstallScreenSaver();
