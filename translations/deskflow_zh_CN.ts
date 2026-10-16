@@ -1100,11 +1100,11 @@ Enabling this setting will disable the server config GUI.</source>
     </message>
     <message>
         <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
-        <translation type="unfinished"></translation>
+        <translation>允许远程桌面工具 (例如 Chrome 远程桌面) 在客户端已连接时控制这台电脑。远程输入不会切换到客户端，远程点击或按键会把光标切回这台电脑。</translation>
     </message>
     <message>
         <source>Allow remote desktop control (Windows only)</source>
-        <translation type="unfinished"></translation>
+        <translation>允许远程桌面控制 (仅限 Windows)</translation>
     </message>
 </context>
 <context>

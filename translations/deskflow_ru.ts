@@ -1096,11 +1096,11 @@ Enabling this setting will disable the server config GUI.</source>
     </message>
     <message>
         <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
-        <translation type="unfinished"></translation>
+        <translation>Позволяет средствам удалённого рабочего стола (например, Удалённому рабочему столу Chrome) управлять этим компьютером, пока подключены клиенты. Удалённый ввод не переключает на клиента, а удалённый щелчок или нажатие клавиши возвращает курсор сюда.</translation>
     </message>
     <message>
         <source>Allow remote desktop control (Windows only)</source>
-        <translation type="unfinished"></translation>
+        <translation>Разрешить управление через удалённый рабочий стол (только для Windows)</translation>
     </message>
 </context>
 <context>

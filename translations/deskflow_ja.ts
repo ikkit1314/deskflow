@@ -1100,11 +1100,11 @@ Enabling this setting will disable the server config GUI.</source>
     </message>
     <message>
         <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
-        <translation type="unfinished"></translation>
+        <translation>クライアント接続中でも、リモート デスクトップ ツール (Chrome リモート デスクトップなど) でこのコンピューターを操作できるようにします。リモート入力ではクライアントに切り替わらず、リモートでクリックまたはキーを押すとカーソルがこのコンピューターに戻ります。</translation>
     </message>
     <message>
         <source>Allow remote desktop control (Windows only)</source>
-        <translation type="unfinished"></translation>
+        <translation>リモート デスクトップからの操作を許可する (Windows のみ)</translation>
     </message>
 </context>
 <context>
