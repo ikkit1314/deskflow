@@ -747,6 +747,25 @@ int MSWindowsHook::uninstall()
   return 1;
 }
 
+void MSWindowsHook::moveToFront()
+{
+  // hook again before unhooking so no events slip through in between
+  if (g_mouseLL != nullptr) {
+    if (HHOOK hook = SetWindowsHookEx(WH_MOUSE_LL, &mouseLLHook, nullptr, 0); hook != nullptr) {
+      UnhookWindowsHookEx(g_mouseLL);
+      g_mouseLL = hook;
+    }
+  }
+#if !NO_GRAB_KEYBOARD
+  if (g_keyboardLL != nullptr) {
+    if (HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, &keyboardLLHook, nullptr, 0); hook != nullptr) {
+      UnhookWindowsHookEx(g_keyboardLL);
+      g_keyboardLL = hook;
+    }
+  }
+#endif
+}
+
 static LRESULT CALLBACK getMessageHook(int code, WPARAM wParam, LPARAM lParam)
 {
   if (code >= 0) {
