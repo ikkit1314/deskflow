@@ -43,6 +43,8 @@ static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
 static bool g_ignoreInjectedInput = false;
+static HWINEVENTHOOK g_foregroundHook = nullptr;
+static UINT_PTR g_moveToFrontTimer = 0;
 
 MSWindowsHook::~MSWindowsHook()
 {
@@ -492,7 +494,11 @@ static LRESULT CALLBACK keyboardLLHook(int code, WPARAM wParam, LPARAM lParam)
     bool const isFakeInputMarker =
         info->vkCode == DESKFLOW_HOOK_FAKE_INPUT_VIRTUAL_KEY && info->scanCode == DESKFLOW_HOOK_FAKE_INPUT_SCANCODE;
     if (g_ignoreInjectedInput && injected && !g_fakeServerInput && !isFakeInputMarker) {
-      if (injectedInputHandler()) {
+      // while relaying, eat injected keys without switching back: programs like
+      // a full-screen remote desktop client inject their own modifier keys
+      // (e.g. ctrl) when the real key is pressed, which would pull the cursor
+      // off the client. a remote click or scroll still brings it back.
+      if (g_mode == kHOOK_RELAY_EVENTS) {
         return 1;
       }
       return CallNextHookEx(g_keyboardLL, code, wParam, lParam);
@@ -669,6 +675,23 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
   return CallNextHookEx(g_mouseLL, code, wParam, lParam);
 }
 
+static void CALLBACK moveToFrontTimer(HWND, UINT, UINT_PTR id, DWORD)
+{
+  KillTimer(nullptr, id);
+  g_moveToFrontTimer = 0;
+  MSWindowsHook::moveToFront();
+}
+
+static void CALLBACK foregroundChanged(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD)
+{
+  // the new foreground program (e.g. a full-screen remote desktop client)
+  // may install its hooks only once it has focus, so wait a moment first
+  if (g_moveToFrontTimer != 0) {
+    KillTimer(nullptr, g_moveToFrontTimer);
+  }
+  g_moveToFrontTimer = SetTimer(nullptr, 0, 500, &moveToFrontTimer);
+}
+
 EHookResult MSWindowsHook::install()
 {
   assert(g_getMessage == nullptr || g_screenSaver);
@@ -714,6 +737,14 @@ EHookResult MSWindowsHook::install()
   // clang-format on
   if (g_keyboardLL != nullptr || g_mouseLL != nullptr) {
     g_hookThread = GetCurrentThreadId();
+
+    // a program that takes the foreground can install its own low-level
+    // hooks, so put ours back in front whenever the foreground changes
+    if (g_foregroundHook == nullptr) {
+      g_foregroundHook = SetWinEventHook(
+          EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr, &foregroundChanged, 0, 0, WINEVENT_OUTOFCONTEXT
+      );
+    }
     return kHOOK_OKAY_LL;
   }
 
@@ -725,6 +756,16 @@ int MSWindowsHook::uninstall()
   // discard old dead keys
   g_deadVirtKey = 0;
   g_deadLParam = 0;
+
+  // stop following the foreground window
+  if (g_foregroundHook != nullptr) {
+    UnhookWinEvent(g_foregroundHook);
+    g_foregroundHook = nullptr;
+  }
+  if (g_moveToFrontTimer != 0) {
+    KillTimer(nullptr, g_moveToFrontTimer);
+    g_moveToFrontTimer = 0;
+  }
 
   // uninstall hooks
   if (g_keyboardLL != nullptr) {
@@ -745,6 +786,25 @@ int MSWindowsHook::uninstall()
   g_keyStateValid = false;
 
   return 1;
+}
+
+void MSWindowsHook::moveToFront()
+{
+  // hook again before unhooking so no events slip through in between
+  if (g_mouseLL != nullptr) {
+    if (HHOOK hook = SetWindowsHookEx(WH_MOUSE_LL, &mouseLLHook, nullptr, 0); hook != nullptr) {
+      UnhookWindowsHookEx(g_mouseLL);
+      g_mouseLL = hook;
+    }
+  }
+#if !NO_GRAB_KEYBOARD
+  if (g_keyboardLL != nullptr) {
+    if (HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, &keyboardLLHook, nullptr, 0); hook != nullptr) {
+      UnhookWindowsHookEx(g_keyboardLL);
+      g_keyboardLL = hook;
+    }
+  }
+#endif
 }
 
 static LRESULT CALLBACK getMessageHook(int code, WPARAM wParam, LPARAM lParam)

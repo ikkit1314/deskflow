@@ -66,8 +66,9 @@ public:
   //! Treat input injected by other programs (e.g. remote desktop) as local
   /*!
   When enabled, injected input never triggers a computer switch and is never
-  relayed to a client; if it arrives while a client is active, the hook asks
-  the server to switch back to this computer instead.
+  relayed to a client. If an injected click or scroll arrives while a client
+  is active, the hook asks the server to switch back to this computer;
+  injected keys are just dropped then.
   */
   static void setIgnoreInjectedInput(bool ignore);
 
@@ -77,6 +78,14 @@ public:
   static EHookResult install();
 
   static int uninstall();
+
+  //! Move the low-level hooks to the front of the hook chain
+  /*!
+  Windows calls the most recently installed low-level hook first. A program
+  that installs its own hook later, like a full-screen remote desktop client,
+  can swallow input before we see it. Installing ours again puts it first.
+  */
+  static void moveToFront();
 
   static int installScreenSaver();
 
