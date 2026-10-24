@@ -1097,7 +1097,7 @@ L&apos;abilitazione di questa impostazione disabiliterà l&apos;interfaccia graf
         <translation type="unfinished">Abilita il blocco al computer all&apos;avvio</translation>
     </message>
     <message>
-        <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
+        <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or scroll brings the cursor back here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

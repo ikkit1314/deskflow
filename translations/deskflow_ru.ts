@@ -1095,7 +1095,7 @@ Enabling this setting will disable the server config GUI.</source>
         <translation>Включать привязку к компьютеру при запуске</translation>
     </message>
     <message>
-        <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or key brings the cursor back here.</source>
+        <source>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won&apos;t switch to a client, and a remote click or scroll brings the cursor back here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -380,7 +380,7 @@
           <item>
            <widget class="QCheckBox" name="cbWin32IgnoreInjectedInput">
             <property name="toolTip">
-             <string>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won't switch to a client, and a remote click or key brings the cursor back here.</string>
+             <string>Lets remote desktop tools (e.g. Chrome Remote Desktop) control this computer while clients are connected. Remote input won't switch to a client, and a remote click or scroll brings the cursor back here.</string>
             </property>
             <property name="text">
              <string>Allow remote desktop control (Windows only)</string>

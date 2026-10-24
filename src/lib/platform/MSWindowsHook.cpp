@@ -494,7 +494,11 @@ static LRESULT CALLBACK keyboardLLHook(int code, WPARAM wParam, LPARAM lParam)
     bool const isFakeInputMarker =
         info->vkCode == DESKFLOW_HOOK_FAKE_INPUT_VIRTUAL_KEY && info->scanCode == DESKFLOW_HOOK_FAKE_INPUT_SCANCODE;
     if (g_ignoreInjectedInput && injected && !g_fakeServerInput && !isFakeInputMarker) {
-      if (injectedInputHandler()) {
+      // while relaying, eat injected keys without switching back: programs like
+      // a full-screen remote desktop client inject their own modifier keys
+      // (e.g. ctrl) when the real key is pressed, which would pull the cursor
+      // off the client. a remote click or scroll still brings it back.
+      if (g_mode == kHOOK_RELAY_EVENTS) {
         return 1;
       }
       return CallNextHookEx(g_keyboardLL, code, wParam, lParam);
