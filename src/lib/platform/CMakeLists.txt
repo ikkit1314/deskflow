@@ -42,6 +42,8 @@ if(WIN32)
     MSWindowsClipboardBitmapConverter.h
     MSWindowsClipboardFacade.cpp
     MSWindowsClipboardFacade.h
+    MSWindowsClipboardFilesConverter.cpp
+    MSWindowsClipboardFilesConverter.h
     MSWindowsClipboardHTMLConverter.cpp
     MSWindowsClipboardHTMLConverter.h
     MSWindowsClipboardUTF16Converter.cpp

@@ -17,6 +17,7 @@
 #include "common/NetworkProtocol.h"
 #include "common/Settings.h"
 #include "deskflow/Clipboard.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
 #include "deskflow/IPlatformComputer.h"
@@ -341,6 +342,7 @@ void Client::setOptions(const OptionsList &options)
       index++;
       if (index != options.end()) {
         m_maximumClipboardSize = *index;
+        ClipboardFiles::setMaximumSize(m_maximumClipboardSize);
       }
     } else if (id == kOptionRelativeMouseMoves) {
       index++;

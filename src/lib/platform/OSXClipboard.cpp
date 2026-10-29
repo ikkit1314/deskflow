@@ -9,11 +9,22 @@
 
 #include "arch/ArchException.h"
 #include "base/Log.h"
+#include "deskflow/ClipboardFiles.h"
 #include "platform/OSXClipboardBMPConverter.h"
 #include "platform/OSXClipboardHTMLConverter.h"
 #include "platform/OSXClipboardTextConverter.h"
 #include "platform/OSXClipboardUTF16Converter.h"
 #include "platform/OSXClipboardUTF8Converter.h"
+
+#include <climits>
+#include <filesystem>
+
+namespace {
+const CFStringRef kFileURLFlavor = CFSTR("public.file-url");
+
+// pasted files get their own items, away from item 0 used by the converters
+const uintptr_t kFirstFileItem = 1000;
+} // namespace
 
 //
 // OSXClipboard
@@ -87,6 +98,10 @@ void OSXClipboard::add(Format format, const std::string &data)
     LOG_DEBUG("format of data to be added to clipboard was kBitmap");
   } else if (format == IClipboard::Format::HTML) {
     LOG_DEBUG("format of data to be added to clipboard was kHTML");
+  } else if (format == IClipboard::Format::Files) {
+    LOG_DEBUG("format of data to be added to clipboard was kFiles");
+    addFiles(data);
+    return;
   }
 
   for (ConverterList::const_iterator index = m_converters.begin(); index != m_converters.end(); ++index) {
@@ -136,6 +151,10 @@ bool OSXClipboard::has(Format format) const
   if (m_pboard == nullptr)
     return false;
 
+  if (format == IClipboard::Format::Files) {
+    return hasFiles();
+  }
+
   PasteboardItemID item;
   PasteboardGetItemIdentifier(m_pboard, (CFIndex)1, &item);
 
@@ -164,6 +183,10 @@ std::string OSXClipboard::get(Format format) const
 
   if (m_pboard == nullptr)
     return result;
+
+  if (format == IClipboard::Format::Files) {
+    return getFiles();
+  }
 
   PasteboardGetItemIdentifier(m_pboard, (CFIndex)1, &item);
 
@@ -219,4 +242,90 @@ void OSXClipboard::clearConverters()
     delete *index;
   }
   m_converters.clear();
+}
+
+void OSXClipboard::addFiles(const std::string &data)
+{
+  const auto paths = ClipboardFiles::unpack(data);
+  for (size_t i = 0; i < paths.size(); ++i) {
+    const auto path = paths[i].string();
+    std::error_code ec;
+    const bool isFolder = std::filesystem::is_directory(paths[i], ec);
+
+    CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+        kCFAllocatorDefault, reinterpret_cast<const UInt8 *>(path.c_str()), static_cast<CFIndex>(path.size()), isFolder
+    );
+    if (url == nullptr) {
+      continue;
+    }
+
+    CFDataRef urlData = CFURLCreateData(kCFAllocatorDefault, url, kCFStringEncodingUTF8, true);
+    if (urlData != nullptr) {
+      auto itemID = reinterpret_cast<PasteboardItemID>(kFirstFileItem + i);
+      PasteboardPutItemFlavor(m_pboard, itemID, kFileURLFlavor, urlData, kPasteboardFlavorNoFlags);
+      CFRelease(urlData);
+    }
+    CFRelease(url);
+  }
+  LOG_DEBUG("added %zu files to clipboard", paths.size());
+}
+
+bool OSXClipboard::hasFiles() const
+{
+  ItemCount count = 0;
+  if (PasteboardGetItemCount(m_pboard, &count) != noErr) {
+    return false;
+  }
+
+  for (ItemCount index = 1; index <= count; ++index) {
+    PasteboardItemID item;
+    PasteboardFlavorFlags flags;
+    if (PasteboardGetItemIdentifier(m_pboard, static_cast<CFIndex>(index), &item) == noErr &&
+        PasteboardGetItemFlavorFlags(m_pboard, item, kFileURLFlavor, &flags) == noErr) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string OSXClipboard::getFiles() const
+{
+  ItemCount count = 0;
+  if (PasteboardGetItemCount(m_pboard, &count) != noErr) {
+    return {};
+  }
+
+  ClipboardFiles::Paths paths;
+  for (ItemCount index = 1; index <= count; ++index) {
+    PasteboardItemID item;
+    CFDataRef urlData = nullptr;
+    if (PasteboardGetItemIdentifier(m_pboard, static_cast<CFIndex>(index), &item) != noErr ||
+        PasteboardCopyItemFlavorData(m_pboard, item, kFileURLFlavor, &urlData) != noErr || urlData == nullptr) {
+      continue;
+    }
+
+    CFURLRef url = CFURLCreateWithBytes(
+        kCFAllocatorDefault, CFDataGetBytePtr(urlData), CFDataGetLength(urlData), kCFStringEncodingUTF8, nullptr
+    );
+    CFRelease(urlData);
+    if (url == nullptr) {
+      continue;
+    }
+
+    // Finder can copy file reference urls (file:///.file/id=...), which need resolving to a path
+    CFURLRef pathURL = CFURLCreateFilePathURL(kCFAllocatorDefault, url, nullptr);
+    CFRelease(url);
+    if (pathURL == nullptr) {
+      continue;
+    }
+
+    UInt8 buffer[PATH_MAX];
+    if (CFURLGetFileSystemRepresentation(pathURL, true, buffer, sizeof(buffer))) {
+      paths.emplace_back(reinterpret_cast<const char *>(buffer));
+    }
+    CFRelease(pathURL);
+  }
+
+  LOG_DEBUG("reading %zu copied files from the clipboard", paths.size());
+  return ClipboardFiles::pack(paths);
 }
