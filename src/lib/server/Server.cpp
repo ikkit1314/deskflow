@@ -11,6 +11,7 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "deskflow/AppUtil.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
 #include "deskflow/IPlatformComputer.h"
@@ -1127,6 +1128,7 @@ void Server::processOptions()
       } else {
         m_maximumClipboardSize = static_cast<size_t>(value);
       }
+      ClipboardFiles::setMaximumSize(m_maximumClipboardSize);
     }
   }
   if (m_relativeMoves && !newRelativeMoves) {
