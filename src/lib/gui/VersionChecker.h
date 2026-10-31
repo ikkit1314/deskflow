@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <QByteArray>
 #include <QObject>
 #include <QString>
 
@@ -24,6 +25,7 @@ Q_SIGNALS:
   void updateFound(const QString &version);
 
 private:
+  static QString parseVersionResponse(const QByteArray &body);
   static int compareVersions(const QString &left, const QString &right);
 
   /**
