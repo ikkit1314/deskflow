@@ -4,12 +4,11 @@
 
 name: Continuous Integration
 
+# Fork: pushes to master are built and released by fork-release.yml, so the
+# full matrix only runs on pull requests or when started by hand.
 on:
-  push:
-    branches: [master]
-    tags:
-      - "v*"
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
