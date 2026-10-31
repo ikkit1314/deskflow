@@ -92,8 +92,9 @@ jobs:
           qt-version: ${{ matrix.target.qt-version }}
           vcpkg-triplet: ${{ matrix.target.vcpkg-triplet }}
 
+      # Default shell (pwsh on Windows): under bash the MSVC environment from
+      # setup-msvc-dev isn't picked up and CMake finds no C++ compiler.
       - name: Configure
-        shell: bash
         run: >
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DSKIP_BUILD_TESTS=ON
           ${{ matrix.target.config-args }}
