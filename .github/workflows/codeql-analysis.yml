@@ -1,26 +1,9 @@
 name: "CodeQL Analysis"
 
-# This is best run as a standalone workflow, not as part of another workflow like CI
-# because of how GitHub understands the code scanning workflows in it's UI.
+# Fork: only fork-release.yml runs automatically (Windows x64 + macOS arm64).
+# This workflow can still be started by hand from the Actions tab.
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/codeql-analysis.yml'
-      - 'cmake/Libraries.cmake'
-      - 'CMakeLists.txt'
-      - 'src/**'
-      - '!src/res/**'
-      - '!src/unittests/**'
-  push:
-    branches: [master]
-    paths:
-      - '.github/workflows/codeql-analysis.yml'
-      - 'cmake/Libraries.cmake'
-      - 'CMakeLists.txt'
-      - 'src/**'
-      - '!src/res/**'
-      - '!src/unittests/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
