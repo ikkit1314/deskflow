@@ -29,7 +29,7 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui{std::make_unique
   ui->btnCopyVersion->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditCopy));
   connect(ui->btnCopyVersion, &QPushButton::clicked, this, &AboutDialog::copyVersionText);
 
-  ui->lblVersion->setText(kDisplayVersion);
+  ui->lblVersion->setText(QStringLiteral("%1 (fork by Ikkit)").arg(QString::fromUtf8(kDisplayVersion)));
   ui->lblDescription->setText(kAppDescription);
   ui->lblCopyright->setText(kCopyright);
 
