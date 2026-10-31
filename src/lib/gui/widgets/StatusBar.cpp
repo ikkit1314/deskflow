@@ -7,6 +7,7 @@
 #include "StatusBar.h"
 #include "common/Constants.h"
 #include "common/Settings.h"
+#include "common/VersionInfo.h"
 
 #include <QEvent>
 #include <QLabel>
@@ -19,6 +20,7 @@ StatusBar::StatusBar(QWidget *parent)
       m_lblSecurityIcon{new QLabel(this)},
       m_lblStatus{new QLabel(this)},
       m_btnUpdate{new QPushButton(this)},
+      m_lblVersion{new QLabel(this)},
       m_retryTimer{new QTimer(this)}
 {
   static const auto btnHeight = height() - 2;
@@ -48,6 +50,12 @@ StatusBar::StatusBar(QWidget *parent)
   m_btnUpdate->setIconSize(iconSize);
   insertPermanentWidget(3, m_btnUpdate);
   connect(m_btnUpdate, &QPushButton::clicked, this, &StatusBar::requestUpdateVersion);
+
+  // Version of this build, marked as Ikkit's fork so it's never mixed up with
+  // an official Deskflow install.
+  m_lblVersion->setText(QStringLiteral("v%1 \u00B7 fork by Ikkit").arg(QString::fromUtf8(kDisplayVersion)));
+  m_lblVersion->setEnabled(false);
+  insertPermanentWidget(4, m_lblVersion);
 
   m_retryTimer->setInterval(1000);
   m_retryTimer->setSingleShot(false);
