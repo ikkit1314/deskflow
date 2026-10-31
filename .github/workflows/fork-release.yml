@@ -111,6 +111,18 @@ jobs:
           done
           exit 1
 
+      # Catch a bundle that macOS would refuse to launch (bad signatures).
+      - name: Verify macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app=$(find build/_CPack_Packages -maxdepth 4 -name 'Deskflow.app' -type d | head -1)
+          if [ -z "$app" ]; then echo "::warning::staged app not found, skipping check"; exit 0; fi
+          echo "Checking $app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv "$app" 2>&1 | grep -E 'Signature|TeamIdentifier|flags'
+          ls "$app/Contents/MacOS"
+
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
