@@ -16,9 +16,12 @@ const auto kOrgDomain = QStringLiteral("deskflow.org");
 const auto kUrlSourceQuery = QStringLiteral("source=gui");
 const auto kUrlApp = QStringLiteral("https://%1").arg(kOrgDomain);
 const auto kUrlHelp = QStringLiteral("%1/help?%2").arg(kUrlApp, kUrlSourceQuery);
-const auto kUrlDownload = QStringLiteral("%1/download?%2").arg(kUrlApp, kUrlSourceQuery);
+// This fork publishes its own builds, so updates are checked against and
+// downloaded from the fork's GitHub releases instead of deskflow.org.
+const auto kForkRepo = QStringLiteral("ikkit1314/deskflow");
+const auto kUrlDownload = QStringLiteral("https://github.com/%1/releases/latest").arg(kForkRepo);
 const auto kUrlWiki = QStringLiteral("%1/wiki?%2").arg(kUrlApp, kUrlSourceQuery);
-const auto kUrlUpdateCheck = QStringLiteral("https://api.%1/version").arg(kOrgDomain);
+const auto kUrlUpdateCheck = QStringLiteral("https://api.github.com/repos/%1/releases/latest").arg(kForkRepo);
 
 #if defined(Q_OS_LINUX)
 const auto kUrlGnomeTrayFix = QStringLiteral("https://extensions.gnome.org/extension/615/appindicator-support/");

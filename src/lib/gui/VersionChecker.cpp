@@ -9,6 +9,8 @@
 #include "common/Settings.h"
 #include "common/VersionInfo.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLocale>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -31,12 +33,19 @@ void VersionChecker::checkLatest() const
   request.setHeader(QNetworkRequest::UserAgentHeader, userAgent);
   request.setRawHeader("X-Deskflow-Version", kVersion);
   request.setRawHeader("X-Deskflow-Language", qPrintable(QLocale::system().name()));
+  request.setRawHeader("Accept", "application/vnd.github+json");
   m_network->get(request);
 }
 
 void VersionChecker::replyFinished(QNetworkReply *reply)
 {
+  reply->deleteLater();
   const auto httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+  if (httpStatus == 404) {
+    // GitHub answers 404 when the repo has no published release yet.
+    qDebug("version check: no release published yet");
+    return;
+  }
   if (reply->error() != QNetworkReply::NoError) {
     qWarning("version check server error: %s", qPrintable(reply->errorString()));
     qWarning("version check server response: %s", qPrintable(QString(reply->readAll())));
@@ -46,8 +55,7 @@ void VersionChecker::replyFinished(QNetworkReply *reply)
 
   qDebug("version check server success, http status: %d", httpStatus);
 
-  const auto newestVersion = QString(reply->readAll());
-  reply->deleteLater();
+  const auto newestVersion = parseVersionResponse(reply->readAll());
   qDebug("version check response: %s", qPrintable(newestVersion));
 
   if (newestVersion.isEmpty()) {
@@ -62,6 +70,25 @@ void VersionChecker::replyFinished(QNetworkReply *reply)
   } else {
     qDebug().noquote() << QStringLiteral("current version %1 is upto date").arg(kVersion);
   }
+}
+
+QString VersionChecker::parseVersionResponse(const QByteArray &body)
+{
+  // GitHub's releases/latest API returns JSON with the tag in "tag_name"
+  // (e.g. "v1.27.1"). The old deskflow.org endpoint returned the version as
+  // plain text, which is still accepted if the URL is changed in settings.
+  QString version;
+  const auto json = QJsonDocument::fromJson(body);
+  if (json.isObject()) {
+    version = json.object().value(QStringLiteral("tag_name")).toString();
+  } else {
+    version = QString::fromUtf8(body);
+  }
+
+  version = version.trimmed();
+  if (version.startsWith(QLatin1Char('v'), Qt::CaseInsensitive))
+    version.remove(0, 1);
+  return version;
 }
 
 int VersionChecker::getStageVersion(QString stage)
@@ -110,14 +137,14 @@ int VersionChecker::compareVersions(const QString &left, const QString &right)
   auto leftStagePart = leftParts.size() > 1 ? leftParts.at(1) : "";
   auto rightStagePart = rightParts.size() > 1 ? rightParts.at(1) : "";
 
-  const int leftMajor = leftNumberParts.at(0).toInt();
-  const int leftMinor = leftNumberParts.at(1).toInt();
-  const int leftPatch = leftNumberParts.at(2).toInt();
+  const int leftMajor = leftNumberParts.value(0).toInt();
+  const int leftMinor = leftNumberParts.value(1).toInt();
+  const int leftPatch = leftNumberParts.value(2).toInt();
   const int leftStage = getStageVersion(leftStagePart);
 
-  const int rightMajor = rightNumberParts.at(0).toInt();
-  const int rightMinor = rightNumberParts.at(1).toInt();
-  const int rightPatch = rightNumberParts.at(2).toInt();
+  const int rightMajor = rightNumberParts.value(0).toInt();
+  const int rightMinor = rightNumberParts.value(1).toInt();
+  const int rightPatch = rightNumberParts.value(2).toInt();
   const int rightStage = getStageVersion(rightStagePart);
 
   const bool rightWins =
